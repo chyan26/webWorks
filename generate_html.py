@@ -39,8 +39,22 @@ def generate_post_html(post_title, formatted_content, media_files):
     </div>
     '''
 
-def generate_html(posts):
+def generate_html(posts, current_location):
     """Generates the complete HTML page with embedded JavaScript and Facebook-like styling."""
+    locations = [
+        "西門定點", "中山定點", "三重定點", "板橋定點",
+        "蘆洲定點", "信義定點", "基隆定點", "汐止定點"
+    ]
+    
+    # Generate navigation links
+    nav_links = []
+    for location in locations:
+        is_active = location == current_location
+        nav_links.append(
+            f'<a href="{location}.html" class="nav-item{" active" if is_active else ""}">{location}</a>'
+        )
+    nav_html = "\n".join(nav_links)
+    
     posts_html = "\n".join(posts)
     return f'''
     <!DOCTYPE html>
@@ -48,7 +62,7 @@ def generate_html(posts):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Generated Posts</title>
+        <title>{current_location}</title>
         <style>
             body {{
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -60,6 +74,7 @@ def generate_html(posts):
                 width: 100%;
                 max-width: 600px;
                 margin: 0 auto;
+                padding-top: 10px;
             }}
             .post {{
                 background-color: white;
@@ -236,9 +251,44 @@ def generate_html(posts):
                 font-size: 24px;
                 font-weight: bold;
             }}
+            /* Navigation bar styles */
+            .nav-bar {{
+                position: sticky;
+                top: 0;
+                background: white;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                padding: 10px 0;
+                z-index: 100;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }}
+            
+            .nav-item {{
+                padding: 8px 16px;
+                color: #1c1e21;
+                text-decoration: none;
+                white-space: nowrap;
+                border-radius: 18px;
+                margin: 0 4px;
+                transition: background-color 0.2s;
+            }}
+            
+            .nav-item:hover {{
+                background-color: #f0f2f5;
+            }}
+            
+            .nav-item.active {{
+                background-color: #e7f3ff;
+                color: #1877f2;
+                font-weight: bold;
+            }}
         </style>
     </head>
     <body>
+        <div class="nav-bar">
+            {nav_html}
+        </div>
         <div class="container">
             {posts_html}
         </div>
@@ -340,21 +390,18 @@ if __name__ == "__main__":
         "西門定點", "中山定點", "三重定點", "板橋定點",
         "蘆洲定點", "信義定點", "基隆定點", "汐止定點",
     ]
-    print("Processing directories:", dir_list[0:1])
     
-    all_posts = []
-    for directory in dir_list[0:1]:  # Adjust slicing as needed
-        if os.path.exists(directory) and os.path.isdir(directory):
-            main(directory, all_posts)
+    for download_directory in dir_list[0:2]:
+        print("Processing directories:", download_directory)
+
+        all_posts = []
+        if os.path.exists(download_directory) and os.path.isdir(download_directory):
+            main(download_directory, all_posts)
+        
+        if all_posts:
+            html_content = generate_html(all_posts, download_directory)
+            output_file = f"{download_directory}.html"
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write(html_content)
         else:
-            print(f"Directory does not exist or is not a valid directory: {directory}")
-    
-    if all_posts:
-        # Generate a single HTML file in the current directory
-        html_content = generate_html(all_posts)
-        output_file = "index.html"
-        with open(output_file, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        print(f"HTML file generated: {output_file}")
-    else:
-        print("No posts were found in the specified directories.")
+            print(f"No posts were found in the specified directory: {download_directory}")
