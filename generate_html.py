@@ -1,41 +1,35 @@
 import os
 import mimetypes
 
-def generate_post_html(post_title, post_content, media_files):
-    """Generates HTML for a single post with Facebook-like media layout."""
-    # Add <br> for each line in content
-    formatted_content = post_content.replace("\n", "<br>\n")
-
-    # Media HTML with Facebook-like layout
-    media_html = ""
-    media_count = len(media_files)
+def generate_post_html(post_title, formatted_content, media_files):
+    """Generates the HTML for a single post."""
+    # Convert newlines to <br> tags
+    formatted_content = formatted_content.replace('\n', '<br>')
     
-    if (media_count > 0):
-        media_html = f'<div class="post-media media-count-{media_count}" data-media-count="{media_count}">'
-        
-        for i, media in enumerate(media_files):
-            mime_type, _ = mimetypes.guess_type(media)
-            
-            # Check if it's an image or video and create the appropriate HTML
-            if mime_type and mime_type.startswith('image'):
-                media_html += f'''
-                <div class="media-item media-item-{i+1}">
-                    <a href="{media}" target="_blank">
-                        <img src="{media}" alt="{media}" class="media-image">
-                    </a>
+    media_count = len(media_files)
+    media_html = f'<div class="post-media media-count-{("more-4" if media_count > 4 else media_count)}" data-media-count="{media_count}">'
+    
+    # Show only first 5 items
+    visible_items = media_files[:5]
+    remaining_count = len(media_files) - 5 if len(media_files) > 5 else 0
+    
+    for index, media in enumerate(visible_items):
+        mime_type = "video/mp4" if media.endswith(".mp4") else "image/jpeg"
+        if mime_type.startswith("image"):
+            media_html += f'''
+                <div class="media-item media-item-{index + 1}" {f'data-remaining="{remaining_count}"' if index == 4 and remaining_count > 0 else ''}>
+                    <img src="{media}" alt="Media">
                 </div>'''
-            elif mime_type and mime_type.startswith('video'):
-                media_html += f'''
-                <div class="media-item media-item-{i+1}">
-                    <a href="{media}" target="_blank">
-                        <video class="media-video" controls>
-                            <source src="{media}" type="{mime_type}">
-                            Your browser does not support the video tag.
-                        </video>
-                    </a>
+        else:
+            media_html += f'''
+                <div class="media-item media-item-{index + 1}" {f'data-remaining="{remaining_count}"' if index == 4 and remaining_count > 0 else ''}>
+                    <video class="media-video" controls>
+                        <source src="{media}" type="{mime_type}">
+                        Your browser does not support the video tag.
+                    </video>
                 </div>'''
-        
-        media_html += '</div>'
+    
+    media_html += '</div>'
 
     return f'''
     <div class="post">
@@ -85,6 +79,8 @@ def generate_html(posts):
                 font-size: 15px;
                 color: #1c1e21;
                 padding: 12px 16px;
+                white-space: pre-line;
+                line-height: 1.5;
             }}
             .post-media {{
                 display: grid;
@@ -95,6 +91,7 @@ def generate_html(posts):
                 position: relative;
                 overflow: hidden;
                 cursor: pointer;
+                height: 100%;
             }}
             .post-media img, .post-media video {{
                 width: 100%;
@@ -152,6 +149,92 @@ def generate_html(posts):
             }}
             .prev:hover, .next:hover {{
                 background-color: rgba(0,0,0,0.8);
+            }}
+            /* Single image */
+            .media-count-1 {{
+                grid-template-columns: 1fr;
+                aspect-ratio: 16/9;
+            }}
+            /* Two images */
+            .media-count-2 {{
+                grid-template-columns: repeat(2, 1fr);
+                aspect-ratio: 16/9;
+            }}
+            /* Three images */
+            .media-count-3 {{
+                grid-template-columns: 2fr 1fr;
+                grid-template-rows: repeat(2, 1fr);
+                aspect-ratio: 4/3;
+            }}
+            .media-count-3 .media-item-1 {{
+                grid-row: 1 / span 2;
+            }}
+            /* Four images */
+            .media-count-4 {{
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+                aspect-ratio: 1/1;
+            }}
+            /* Five or more images */
+            .media-count-more-4 {{
+                grid-template-columns: repeat(6, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+                aspect-ratio: 3/2;
+            }}
+            .media-count-more-4 .media-item-1 {{
+                grid-column: span 3;
+                grid-row: 1;
+            }}
+            .media-count-more-4 .media-item-2 {{
+                grid-column: span 3;
+                grid-row: 1;
+            }}
+            .media-count-more-4 .media-item-3,
+            .media-count-more-4 .media-item-4,
+            .media-count-more-4 .media-item-5 {{
+                grid-column: span 2;
+                grid-row: 2;
+            }}
+            .media-count-more-4 .media-item-5[data-remaining]::after {{
+                content: '+' attr(data-remaining);
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                font-weight: bold;
+            }}
+            .media-item {{
+                position: relative;
+                overflow: hidden;
+                cursor: pointer;
+                height: 100%;
+            }}
+            .media-item img, 
+            .media-item video {{
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }}
+            .media-overlay {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                font-weight: bold;
             }}
         </style>
     </head>
@@ -238,6 +321,10 @@ def main(base_directory, posts):
             if os.path.exists(content_file):
                 with open(content_file, "r", encoding="utf-8") as f:
                     post_content = f.read()
+                
+                # Ensure the content ends with a new line
+                if not post_content.endswith('\n'):
+                    post_content += '\n'
                 
                 media_files = [
                     os.path.join(post_path, f) 
