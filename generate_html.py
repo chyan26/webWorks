@@ -14,6 +14,8 @@ def generate_post_html(post_title, formatted_content, media_files):
     remaining_count = len(media_files) - 5 if len(media_files) > 5 else 0
     
     for index, media in enumerate(visible_items):
+        # Remove 'html/' from the media file path
+        media = os.path.relpath(media, 'html')
         mime_type = "video/mp4" if media.endswith(".mp4") else "image/jpeg"
         if mime_type.startswith("image"):
             media_html += f'''
@@ -39,16 +41,12 @@ def generate_post_html(post_title, formatted_content, media_files):
     </div>
     '''
 
-def generate_html(posts, current_location):
+def generate_html(posts, current_location, valid_locations):
     """Generates the complete HTML page with embedded JavaScript and Facebook-like styling."""
-    locations = [
-        "西門定點", "中山定點", "三重定點", "板橋定點",
-        "蘆洲定點", "信義定點", "基隆定點", "汐止定點"
-    ]
     
     # Generate navigation links
     nav_links = []
-    for location in locations:
+    for location in valid_locations:
         is_active = location == current_location
         nav_links.append(
             f'<a href="{location}.html" class="nav-item{" active" if is_active else ""}">{location}</a>'
@@ -391,7 +389,8 @@ if __name__ == "__main__":
         "蘆洲定點", "信義定點", "基隆定點", "汐止定點",
     ]
     
-    for download_directory in dir_list[0:2]:
+    for location_directory in dir_list:
+        download_directory = os.path.join("html/", location_directory)
         print("Processing directories:", download_directory)
 
         all_posts = []
@@ -399,7 +398,7 @@ if __name__ == "__main__":
             main(download_directory, all_posts)
         
         if all_posts:
-            html_content = generate_html(all_posts, download_directory)
+            html_content = generate_html(all_posts, download_directory, dir_list)
             output_file = f"{download_directory}.html"
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(html_content)
