@@ -36,9 +36,10 @@ def download_media(url, directory):
         print(f"Failed to download media {url}: {e}")
 
 def generate_keywords(download_directory, number):
+    location = download_directory.split('/')[-1]  # Extract the location name
     return [
-        f"{download_directory}｜免房費｜編號{number:02}區",
-        f"{download_directory}｜免房費｜編號#{number:02}區"
+        f"{location}｜免房費｜編號{number:02}區",
+        f"{location}｜免房費｜編號#{number:02}區"
     ]
 
 def clean_content(targeted_content):
@@ -136,11 +137,15 @@ def scrape_page(base_url, number, download_directory):
             print(f"Failed to scrape page {number} with keyword {target_keyword}: {e}")
 
 def main(base_url, download_directory, start_number, end_number):
+    # Create the 'html' directory if it doesn't exist
+    html_directory = os.path.join('html', download_directory)
+    os.makedirs(html_directory, exist_ok=True)
+
     # Use ProcessPoolExecutor for CPU-bound tasks
     with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
         # Submit all scraping tasks
         futures = [
-            executor.submit(scrape_page, base_url, number, download_directory) 
+            executor.submit(scrape_page, base_url, number, html_directory) 
             for number in range(start_number, end_number + 1)
         ]
         
@@ -155,5 +160,5 @@ if __name__ == "__main__":
     ]
     start_number = 79
     end_number = 103
-    for download_directory in dir_list[0:1]:
+    for download_directory in dir_list:
         main(base_url, download_directory, start_number, end_number)
