@@ -1,6 +1,8 @@
 *.html
 *.jpg
 *.txt
+*.mp4
+*.png
 
 # Node modules
 node_modules/
