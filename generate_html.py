@@ -10,7 +10,7 @@ def generate_post_html(post_title, post_content, media_files):
     media_html = ""
     media_count = len(media_files)
     
-    if media_count > 0:
+    if (media_count > 0):
         media_html = f'<div class="post-media media-count-{media_count}" data-media-count="{media_count}">'
         
         for i, media in enumerate(media_files):
@@ -94,45 +94,64 @@ def generate_html(posts):
             .post-media .media-item {{
                 position: relative;
                 overflow: hidden;
+                cursor: pointer;
             }}
             .post-media img, .post-media video {{
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
             }}
-            
-            /* Layout for different media counts */
-            .media-count-1 .media-item {{ grid-template-columns: 1fr; }}
-            .media-count-2 {{ grid-template-columns: 1fr 1fr; }}
-            .media-count-3 {{
-                grid-template-columns: 2fr 1fr;
-                grid-template-rows: repeat(2, auto);
-            }}
-            .media-count-3 .media-item-1 {{
-                grid-column: 1;
-                grid-row: 1 / span 2;
-            }}
-            .media-count-4 {{
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: 1fr 1fr;
-            }}
-            .media-count-more-4 {{
-                grid-template-columns: repeat(3, 1fr);
-                max-height: 600px;
-            }}
-            .media-count-more-4 .media-item-4::after {{
-                content: '+X';
-                position: absolute;
-                top: 0;
+            .modal {{
+                display: none;
+                position: fixed;
+                z-index: 1000;
                 left: 0;
+                top: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0,0,0,0.5);
+                overflow: auto;
+                background-color: rgba(0,0,0,0.8);
+            }}
+            .modal-content {{
+                position: relative;
+                margin: auto;
+                padding: 0;
+                width: 80%;
+                max-width: 700px;
+            }}
+            .close {{
+                position: absolute;
+                top: 10px;
+                right: 25px;
                 color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
+                font-size: 35px;
+                font-weight: bold;
+                cursor: pointer;
+            }}
+            .modal-media {{
+                width: 100%;
+                height: auto;
+            }}
+            .prev, .next {{
+                cursor: pointer;
+                position: absolute;
+                top: 50%;
+                width: auto;
+                padding: 16px;
+                margin-top: -50px;
+                color: white;
+                font-weight: bold;
+                font-size: 20px;
+                transition: 0.6s ease;
+                border-radius: 0 3px 3px 0;
+                user-select: none;
+            }}
+            .next {{
+                right: 0;
+                border-radius: 3px 0 0 3px;
+            }}
+            .prev:hover, .next:hover {{
+                background-color: rgba(0,0,0,0.8);
             }}
         </style>
     </head>
@@ -141,38 +160,69 @@ def generate_html(posts):
             {posts_html}
         </div>
         
+        <div id="myModal" class="modal">
+            <span class="close">&times;</span>
+            <div class="modal-content">
+                <img class="modal-media" id="modalImage">
+                <video class="modal-media" id="modalVideo" controls></video>
+                <a class="prev" onclick="changeSlide(-1)">&#10094;</a>
+                <a class="next" onclick="changeSlide(1)">&#10095;</a>
+            </div>
+        </div>
+
         <script>
-            document.addEventListener("DOMContentLoaded", function() {{
-                const posts = document.querySelectorAll('.post-media');
-                
-                posts.forEach(mediaContainer => {{
-                    const mediaCount = parseInt(mediaContainer.getAttribute('data-media-count'), 10);
-                    const mediaItems = mediaContainer.querySelectorAll('.media-item');
-                    
-                    // Dynamic grid layout
-                    if (mediaCount === 1) {{
-                        mediaContainer.style.gridTemplateColumns = '1fr';
-                    }} else if (mediaCount === 2) {{
-                        mediaContainer.style.gridTemplateColumns = '1fr 1fr';
-                    }} else if (mediaCount === 3) {{
-                        mediaContainer.classList.add('media-count-3');
-                    }} else if (mediaCount === 4) {{
-                        mediaContainer.style.gridTemplateColumns = '1fr 1fr';
-                        mediaContainer.style.gridTemplateRows = '1fr 1fr';
-                    }} else if (mediaCount > 4) {{
-                        mediaContainer.classList.add('media-count-more-4');
-                        
-                        // Create a style element to show extra count
-                        const extraCount = mediaCount - 4;
-                        const styleElement = document.createElement('style');
-                        styleElement.textContent = `
-                            .media-count-more-4 .media-item-4::after {{
-                                content: '+${'extraCount'}';
-                            }}
-                        `;
-                        document.head.appendChild(styleElement);
-                    }}
+            let currentSlideIndex = 0;
+            const modal = document.getElementById("myModal");
+            const modalImage = document.getElementById("modalImage");
+            const modalVideo = document.getElementById("modalVideo");
+            const closeModal = document.getElementsByClassName("close")[0];
+
+            document.querySelectorAll('.media-item img, .media-item video').forEach((item, index) => {{
+                item.addEventListener('click', () => {{
+                    currentSlideIndex = index;
+                    showSlide(currentSlideIndex);
+                    modal.style.display = "block";
                 }});
+            }});
+
+            closeModal.onclick = function() {{
+                modal.style.display = "none";
+            }}
+
+            window.onclick = function(event) {{
+                if (event.target == modal) {{
+                    modal.style.display = "none";
+                }}
+            }}
+
+            function showSlide(index) {{
+                const items = document.querySelectorAll('.media-item img, .media-item video');
+                const media = items[index];
+                if (media.tagName === 'IMG') {{
+                    modalImage.src = media.src;
+                    modalImage.style.display = "block";
+                    modalVideo.style.display = "none";
+                }} else if (media.tagName === 'VIDEO') {{
+                    modalVideo.src = media.querySelector('source').src;
+                    modalVideo.style.display = "block";
+                    modalImage.style.display = "none";
+                }}
+            }}
+
+            function changeSlide(n) {{
+                const items = document.querySelectorAll('.media-item img, .media-item video');
+                currentSlideIndex = (currentSlideIndex + n + items.length) % items.length;
+                showSlide(currentSlideIndex);
+            }}
+
+            document.addEventListener('keydown', function(event) {{
+                if (event.key === 'ArrowLeft') {{
+                    changeSlide(-1);
+                }} else if (event.key === 'ArrowRight') {{
+                    changeSlide(1);
+                }} else if (event.key === 'Escape') {{
+                    modal.style.display = "none";
+                }}
             }});
         </script>
     </body>
