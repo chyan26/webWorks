@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>103 - 內容彙整</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .post-media .main-media { 
+            width: 100%; 
+            max-height: 500px; 
+            object-fit: cover; 
+        }
+        .thumbnail { 
+            width: 80px; 
+            height: 80px; 
+            object-fit: cover; 
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .active-thumbnail { 
+            border: 3px solid #3B82F6; 
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto max-w-2xl px-4 py-8">
+        <div class="mb-6">
+            <a href="index.html" class="text-blue-600 hover:text-blue-800 font-semibold">
+                ← 返回總覽
+            </a>
+        </div>
+        <h1 class="text-2xl font-bold mb-6 text-center">103 - 內容彙整</h1>
+        
+        <div id="posts" class="space-y-6">
+            
+        </div>
+    </div>
+
+    <script>
+    function setupMediaGallery(postElement) {
+        const mainMediaContainer = postElement.querySelector('.post-media');
+        const thumbnails = postElement.querySelectorAll('.thumbnail');
+
+        if (thumbnails.length > 0) {
+            thumbnails.forEach((thumbnail, index) => {
+                thumbnail.addEventListener('click', () => {
+                    // Remove active class from all thumbnails
+                    thumbnails.forEach(t => t.classList.remove('active-thumbnail'));
+                    
+                    // Add active class to clicked thumbnail
+                    thumbnail.classList.add('active-thumbnail');
+                    
+                    // Update main media
+                    const newSrc = thumbnail.getAttribute('data-src');
+                    const newType = thumbnail.getAttribute('data-type');
+                    
+                    if (newType === 'image') {
+                        mainMediaContainer.innerHTML = `<img src="${newSrc}" class="main-media w-full max-h-[500px] object-cover">`;
+                    } else if (newType === 'video') {
+                        mainMediaContainer.innerHTML = `<video src="${newSrc}" class="main-media w-full max-h-[500px] object-cover" controls></video>`;
+                    }
+                });
+
+                // Set first thumbnail as active by default
+                if (index === 0) {
+                    thumbnail.classList.add('active-thumbnail');
+                }
+            });
+        }
+    }
+
+    // Setup media galleries for all posts
+    document.querySelectorAll('.post').forEach(setupMediaGallery);
+    </script>
+</body>
+</html>
+        
