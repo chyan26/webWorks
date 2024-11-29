@@ -32,7 +32,7 @@ def generate_post_html(post_title, formatted_content, media_files):
                 </div>'''
     
     media_html += '</div>'
-
+    post_title = formatted_content.split('<br>')[0]
     return f'''
     <div class="post">
         <div class="post-title">{post_title}</div>
@@ -53,7 +53,14 @@ def generate_html(posts, current_location, valid_locations):
         )
     nav_html = "\n".join(nav_links)
     
-    posts_html = "\n".join(posts)
+    if not posts:
+        posts_html = '''
+        <div class="post no-posts">
+            <div class="post-content">目前尚無貼文</div>
+        </div>
+        '''
+    else:
+        posts_html = "\n".join(posts)
     return f'''
     <!DOCTYPE html>
     <html lang="en">
@@ -110,6 +117,14 @@ def generate_html(posts, current_location, valid_locations):
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
+            }}
+            .no-posts {{
+                background-color: white;
+                border-radius: 8px;
+                text-align: center;
+                color: #65676b;
+                padding: 20px;
+                margin: 15px 0;
             }}
             .modal {{
                 display: none;
@@ -250,6 +265,7 @@ def generate_html(posts, current_location, valid_locations):
                 font-weight: bold;
             }}
             /* Navigation bar styles */
+            
             .nav-bar {{
                 position: sticky;
                 top: 0;
@@ -258,8 +274,12 @@ def generate_html(posts, current_location, valid_locations):
                 padding: 10px 0;
                 z-index: 100;
                 display: flex;
+                flex-wrap: wrap;
                 justify-content: center;
                 align-items: center;
+                width: 100%;
+                max-width: 600px;
+                margin: 0 auto;
             }}
             
             .nav-item {{
@@ -268,8 +288,9 @@ def generate_html(posts, current_location, valid_locations):
                 text-decoration: none;
                 white-space: nowrap;
                 border-radius: 18px;
-                margin: 0 4px;
+                margin: 4px;
                 transition: background-color 0.2s;
+                font-size: 14px;
             }}
             
             .nav-item:hover {{
@@ -385,10 +406,10 @@ def main(base_directory, posts):
 if __name__ == "__main__":
     # Specify the directories to process
     dir_list = [
-        "西門定點", "中山定點", "三重定點", "板橋定點",
-        "蘆洲定點", "信義定點", "基隆定點", "汐止定點",
+        "西門定點","中山定點","三重定點","板橋定點",
+        "蘆洲定點","信義定點","基隆定點","汐止定點",
+        "永和定點","中和定點","新店定點","樹林定點",
     ]
-    
     for location_directory in dir_list:
         download_directory = os.path.join("html/", location_directory)
         print("Processing directories:", download_directory)
@@ -397,10 +418,11 @@ if __name__ == "__main__":
         if os.path.exists(download_directory) and os.path.isdir(download_directory):
             main(download_directory, all_posts)
         
-        if all_posts:
-            html_content = generate_html(all_posts, download_directory, dir_list)
-            output_file = f"{download_directory}.html"
-            with open(output_file, "w", encoding="utf-8") as f:
-                f.write(html_content)
-        else:
+        # Always generate HTML, regardless of whether posts are found
+        html_content = generate_html(all_posts, location_directory, dir_list)
+        output_file = f"{download_directory}.html"
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        if not all_posts:
             print(f"No posts were found in the specified directory: {download_directory}")

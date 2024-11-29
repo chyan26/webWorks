@@ -157,8 +157,9 @@ if __name__ == "__main__":
     dir_list = [
         "西門定點","中山定點","三重定點","板橋定點",
         "蘆洲定點","信義定點","基隆定點","汐止定點",
+        "永和定點","中和定點","新店定點","樹林定點",
     ]
-    start_number = 79
+    start_number = 1
     end_number = 103
     for download_directory in dir_list:
         main(base_url, download_directory, start_number, end_number)
