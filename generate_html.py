@@ -20,27 +20,24 @@ def generate_post_html(post_title, formatted_content, media_files):
         mime_type = "video/mp4" if media.endswith(".mp4") else "image/jpeg"
         if mime_type.startswith("image"):
             media_html += f'''
-                <div class="media-item media-item-{index + 1}" {f'data-remaining="{remaining_count}"' if index == 4 and remaining_count > 0 else ''}>
+                <div class="media-item media-item-{index + 1}" data-post-index="{post_title}" {f'data-remaining="{remaining_count}"' if index == 4 and remaining_count > 0 else ''}>
                     <img src="{media}" alt="Media">
                 </div>'''
         else:
             media_html += f'''
-                <div class="media-item media-item-{index + 1}" {f'data-remaining="{remaining_count}"' if index == 4 and remaining_count > 0 else ''}>
+                <div class="media-item media-item-{index + 1}" data-post-index="{post_title}" {f'data-remaining="{remaining_count}"' if index == 4 and remaining_count > 0 else ''}>
                     <div class="video-container">
                         <video class="media-video" controls>
                             <source src="{media}" type="{mime_type}">
                             Your browser does not support the video tag.
                         </video>
-                        <div class="video-overlay">
-                            <img src="icon-play.png" class="play-icon" alt="Play">
-                        </div>
                     </div>
                 </div>'''
     
     media_html += '</div>'
     post_title = formatted_content.split('<br>')[0]
     return f'''
-    <div class="post">
+    <div class="post" data-post-index="{post_title}">
         <div class="post-title">{post_title}</div>
         {media_html}
         <div class="post-content">{formatted_content}</div>
@@ -123,45 +120,6 @@ def generate_html(posts, current_location, valid_locations):
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
-            }}
-            /* Video Container Styles */
-            .video-container {{
-                position: relative;
-                width: 100%;
-                height: 100%;
-            }}
-            .video-overlay {{
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                background: rgba(0, 0, 0, 0.3);
-                opacity: 1;
-                transition: opacity 0.3s;
-                pointer-events: none;
-                z-index: 10;
-            }}
-            .play-icon {{
-                width: 32px;
-                height: 32px;
-                opacity: 0.9;
-            }}
-            .video-container:hover .video-overlay {{
-                opacity: 0;
-            }}
-            
-            /* Rest of the existing CSS remains the same */
-            .no-posts {{
-                background-color: white;
-                border-radius: 8px;
-                text-align: center;
-                color: #65676b;
-                padding: 20px;
-                margin: 15px 0;
             }}
             .modal {{
                 display: none;
@@ -275,7 +233,6 @@ def generate_html(posts, current_location, valid_locations):
                 font-size: 24px;
                 font-weight: bold;
             }}
-            /* Navigation bar styles */
             .nav-bar {{
                 position: sticky;
                 top: 0;
@@ -309,6 +266,14 @@ def generate_html(posts, current_location, valid_locations):
                 color: #1877f2;
                 font-weight: bold;
             }}
+            .no-posts {{
+                background-color: white;
+                border-radius: 8px;
+                text-align: center;
+                color: #65676b;
+                padding: 20px;
+                margin: 15px 0;
+            }}
         </style>
     </head>
     <body>
@@ -336,11 +301,39 @@ def generate_html(posts, current_location, valid_locations):
             const modalVideo = document.getElementById("modalVideo");
             const closeModal = document.getElementsByClassName("close")[0];
 
-            document.querySelectorAll('.media-item img, .media-item video').forEach((item, index) => {{
-                item.addEventListener('click', () => {{
-                    currentSlideIndex = index;
-                    showSlide(currentSlideIndex);
+            document.querySelectorAll('.media-item img, .media-item video').forEach((item) => {{
+                item.addEventListener('click', (event) => {{
+                    const postContainer = event.target.closest('.post');
+                    const postIndex = postContainer.getAttribute('data-post-index');
+                    
+                    // Filter media items within the same post
+                    const postMediaItems = postContainer.querySelectorAll('.media-item img, .media-item video');
+                    const postMediaArray = Array.from(postMediaItems);
+                    currentSlideIndex = postMediaArray.indexOf(event.target);
+                    
+                    function showPostSlide(index) {{
+                        const media = postMediaArray[index];
+                        if (media.tagName === 'IMG') {{
+                            modalImage.src = media.src;
+                            modalImage.style.display = "block";
+                            modalVideo.style.display = "none";
+                        }} else if (media.tagName === 'VIDEO') {{
+                            modalVideo.src = media.querySelector('source').src;
+                            modalVideo.style.display = "block";
+                            modalImage.style.display = "none";
+                        }}
+                    }}
+
+                    function changePostSlide(n) {{
+                        currentSlideIndex = (currentSlideIndex + n + postMediaArray.length) % postMediaArray.length;
+                        showPostSlide(currentSlideIndex);
+                    }}
+
+                    showPostSlide(currentSlideIndex);
                     modal.style.display = "block";
+
+                    // Override global slide change functions for this post's media
+                    window.changeSlide = changePostSlide;
                 }});
             }});
 
@@ -354,31 +347,11 @@ def generate_html(posts, current_location, valid_locations):
                 }}
             }}
 
-            function showSlide(index) {{
-                const items = document.querySelectorAll('.media-item img, .media-item video');
-                const media = items[index];
-                if (media.tagName === 'IMG') {{
-                    modalImage.src = media.src;
-                    modalImage.style.display = "block";
-                    modalVideo.style.display = "none";
-                }} else if (media.tagName === 'VIDEO') {{
-                    modalVideo.src = media.querySelector('source').src;
-                    modalVideo.style.display = "block";
-                    modalImage.style.display = "none";
-                }}
-            }}
-
-            function changeSlide(n) {{
-                const items = document.querySelectorAll('.media-item img, .media-item video');
-                currentSlideIndex = (currentSlideIndex + n + items.length) % items.length;
-                showSlide(currentSlideIndex);
-            }}
-
             document.addEventListener('keydown', function(event) {{
                 if (event.key === 'ArrowLeft') {{
-                    changeSlide(-1);
+                    window.changeSlide(-1);
                 }} else if (event.key === 'ArrowRight') {{
-                    changeSlide(1);
+                    window.changeSlide(1);
                 }} else if (event.key === 'Escape') {{
                     modal.style.display = "none";
                 }}
