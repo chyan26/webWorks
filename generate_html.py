@@ -1,5 +1,6 @@
 import os
 import mimetypes
+import shutil
 
 def generate_post_html(post_title, formatted_content, media_files):
     """Generates the HTML for a single post."""
@@ -410,6 +411,7 @@ if __name__ == "__main__":
         "蘆洲定點","信義定點","基隆定點","汐止定點",
         "永和定點","中和定點","新店定點","樹林定點",
     ]
+    first_html_generated = False
     for location_directory in dir_list:
         download_directory = os.path.join("html/", location_directory)
         print("Processing directories:", download_directory)
@@ -426,3 +428,8 @@ if __name__ == "__main__":
         
         if not all_posts:
             print(f"No posts were found in the specified directory: {download_directory}")
+
+        # Copy the first generated HTML file to index.html
+        if not first_html_generated:
+            shutil.copy(output_file, "html/index.html")
+            first_html_generated = True
