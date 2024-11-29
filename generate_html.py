@@ -26,10 +26,15 @@ def generate_post_html(post_title, formatted_content, media_files):
         else:
             media_html += f'''
                 <div class="media-item media-item-{index + 1}" {f'data-remaining="{remaining_count}"' if index == 4 and remaining_count > 0 else ''}>
-                    <video class="media-video" controls>
-                        <source src="{media}" type="{mime_type}">
-                        Your browser does not support the video tag.
-                    </video>
+                    <div class="video-container">
+                        <video class="media-video" controls>
+                            <source src="{media}" type="{mime_type}">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-overlay">
+                            <img src="icon-play.png" class="play-icon" alt="Play">
+                        </div>
+                    </div>
                 </div>'''
     
     media_html += '</div>'
@@ -119,6 +124,37 @@ def generate_html(posts, current_location, valid_locations):
                 height: 100%;
                 object-fit: cover;
             }}
+            /* Video Container Styles */
+            .video-container {{
+                position: relative;
+                width: 100%;
+                height: 100%;
+            }}
+            .video-overlay {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: rgba(0, 0, 0, 0.3);
+                opacity: 1;
+                transition: opacity 0.3s;
+                pointer-events: none;
+                z-index: 10;
+            }}
+            .play-icon {{
+                width: 32px;
+                height: 32px;
+                opacity: 0.9;
+            }}
+            .video-container:hover .video-overlay {{
+                opacity: 0;
+            }}
+            
+            /* Rest of the existing CSS remains the same */
             .no-posts {{
                 background-color: white;
                 border-radius: 8px;
@@ -239,34 +275,7 @@ def generate_html(posts, current_location, valid_locations):
                 font-size: 24px;
                 font-weight: bold;
             }}
-            .media-item {{
-                position: relative;
-                overflow: hidden;
-                cursor: pointer;
-                height: 100%;
-            }}
-            .media-item img, 
-            .media-item video {{
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }}
-            .media-overlay {{
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.4);
-                color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
-                font-weight: bold;
-            }}
             /* Navigation bar styles */
-            
             .nav-bar {{
                 position: sticky;
                 top: 0;
@@ -282,7 +291,6 @@ def generate_html(posts, current_location, valid_locations):
                 max-width: 600px;
                 margin: 0 auto;
             }}
-            
             .nav-item {{
                 padding: 8px 16px;
                 color: #1c1e21;
@@ -293,11 +301,9 @@ def generate_html(posts, current_location, valid_locations):
                 transition: background-color 0.2s;
                 font-size: 14px;
             }}
-            
             .nav-item:hover {{
                 background-color: #f0f2f5;
             }}
-            
             .nav-item.active {{
                 background-color: #e7f3ff;
                 color: #1877f2;
@@ -429,6 +435,7 @@ if __name__ == "__main__":
         if not all_posts:
             print(f"No posts were found in the specified directory: {download_directory}")
 
+        shutil.copy('icon-play.png', "html/")
         # Copy the first generated HTML file to index.html
         if not first_html_generated:
             shutil.copy(output_file, "html/index.html")
