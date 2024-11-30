@@ -31,6 +31,9 @@ def generate_post_html(post_title, formatted_content, media_files):
                             <source src="{media}" type="{mime_type}">
                             Your browser does not support the video tag.
                         </video>
+                        <div class="video-overlay">
+                            <img src="icon-play.png" class="play-icon" alt="Play">
+                        </div>
                     </div>
                 </div>'''
     
@@ -152,6 +155,12 @@ def generate_html(posts, current_location, valid_locations):
                 width: 100%;
                 height: auto;
             }}
+            .modal .video-overlay {{
+                display: none;
+            }}
+            .modal .play-icon {{
+                display: none;
+            }}
             .prev, .next {{
                 cursor: pointer;
                 position: absolute;
@@ -233,6 +242,32 @@ def generate_html(posts, current_location, valid_locations):
                 font-size: 24px;
                 font-weight: bold;
             }}
+            /* Video Container Styles */
+            .video-container {{
+                position: relative;
+                width: 100%;
+                height: 100%;
+            }}
+            .video-overlay {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: rgba(0, 0, 0, 0.3);
+                opacity: 1;
+                transition: opacity 0.3s;
+                pointer-events: none;
+                z-index: 10;
+            }}
+            .play-icon {{
+                width: 64px;
+                height: 64px;
+                opacity: 0.9;
+            }}
             .nav-bar {{
                 position: sticky;
                 top: 0;
@@ -308,19 +343,25 @@ def generate_html(posts, current_location, valid_locations):
                     
                     // Filter media items within the same post
                     const postMediaItems = postContainer.querySelectorAll('.media-item img, .media-item video');
-                    const postMediaArray = Array.from(postMediaItems);
+                    const postMediaArray = Array.from(postMediaItems).filter(media => !media.src.includes('icon-play.png'));
                     currentSlideIndex = postMediaArray.indexOf(event.target);
                     
                     function showPostSlide(index) {{
                         const media = postMediaArray[index];
+                        const sourceMedia = media.tagName === 'IMG' ? media : media.querySelector('source');
+                        const videoOverlay = media.closest('.media-item').querySelector('.video-overlay');
+                        
                         if (media.tagName === 'IMG') {{
-                            modalImage.src = media.src;
+                            modalImage.src = sourceMedia.src;
                             modalImage.style.display = "block";
                             modalVideo.style.display = "none";
-                        }} else if (media.tagName === 'VIDEO') {{
-                            modalVideo.src = media.querySelector('source').src;
+                        }} else {{
+                            modalVideo.src = sourceMedia.src;
                             modalVideo.style.display = "block";
                             modalImage.style.display = "none";
+                            if (videoOverlay) {{
+                                videoOverlay.style.display = "none";
+                            }}
                         }}
                     }}
 
