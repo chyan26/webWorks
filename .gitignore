@@ -6,6 +6,9 @@
 
 html/
 
+__pycache__/
+*.pyc
+
 # Node modules
 node_modules/
 npm-debug.log*
