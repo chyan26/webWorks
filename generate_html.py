@@ -82,17 +82,19 @@ def generate_html(posts, current_location, valid_locations):
                 padding: 0;
             }}
             .container {{
-                width: 100%;
+                width: 95%;
                 max-width: 600px;
                 margin: 0 auto;
                 padding-top: 10px;
+                padding: 10px 5px;
             }}
             .post {{
                 background-color: white;
                 border-radius: 8px;
                 box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-                margin: 15px 0;
+                margin: 15px auto;
                 overflow: hidden;
+                box-sizing: border-box;
             }}
             .post-title {{
                 font-size: 15px;
