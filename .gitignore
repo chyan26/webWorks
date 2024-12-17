@@ -3,6 +3,11 @@
 *.txt
 *.mp4
 *.png
+*.csv
+*.json
+*.xml
+
+data/
 
 html/
 
