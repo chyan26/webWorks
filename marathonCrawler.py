@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,7 +19,7 @@ class MarathonCrawler:
 
     def init_driver(self):
         options = uc.ChromeOptions()
-        options.headless = True  # Disable headless mode for debugging
+        options.headless = True
         driver = uc.Chrome(options=options)
         return driver
 
@@ -36,138 +37,134 @@ class MarathonCrawler:
         with open(file_path, 'w') as f:
             json.dump(data, f)
 
-    def scrape_runner_data(self, url, bib_number, timeout=10, max_retries=3):
+    def scrape_runner_data(self, url, bib_number, timeout=10):
         if self.check_existing_data(bib_number):
             print(f"Data for bib number {bib_number} already exists. Skipping scraping.")
             return self.load_existing_data(bib_number)
 
-        retries = 0
-        while retries < max_retries:
-            try:
-                # Open the URL
-                self.driver.get(url)
-                
-                # Wait for the page to load, or the Cloudflare challenge to appear
-                WebDriverWait(self.driver, timeout).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, 'rank-card-athlete-name'))
-                )
+        try:
+            # Open the URL
+            self.driver.get(url)
+            
+            # Wait for the page to load
+            WebDriverWait(self.driver, timeout).until(
+                EC.presence_of_element_located((By.CLASS_NAME, 'rank-card-athlete-name'))
+            )
+            time.sleep(2)  # Ensure page is fully loaded
 
-                # Add a delay to ensure the page is fully loaded
-                time.sleep(2)
+            # Parse the page source
+            page_source = self.driver.page_source
+            soup = BeautifulSoup(page_source, 'html.parser')
 
-                # After bypassing the challenge, get the page source and parse it with BeautifulSoup
-                page_source = self.driver.page_source
-                soup = BeautifulSoup(page_source, 'html.parser')
-                
-                # Extract runner information
-                runner_info = {'Bib Number': bib_number}
-                
-                # Extract name
-                name_div = soup.find('div', class_='flex justify-content-between rank-card-athlete-name')
-                if name_div:
-                    name_h1 = name_div.find('h1', class_='fc-white float-left my-auto')
-                    if name_h1:
-                        runner_info['Name'] = name_h1.get_text(strip=True)
-                
-                # Extract other details
-                info_div = soup.find('div', class_='flex text-align-left rank-card-detial float-left')
-                if info_div:
-                    spans = info_div.find_all('span', class_='fs-1')
-                    if len(spans) >= 4:
-                        runner_info['Event'] = spans[0].get_text(strip=True)
-                        runner_info['Group'] = spans[1].get_text(strip=True)
-                        runner_info['Nation'] = spans[2].get_text(strip=True)
-                        runner_info['Gender'] = spans[3].get_text(strip=True)
+            # Extract runner information
+            runner_info = {'Bib Number': bib_number}
+            name_div = soup.find('div', class_='flex justify-content-between rank-card-athlete-name')
+            if name_div:
+                name_h1 = name_div.find('h1', class_='fc-white float-left my-auto')
+                if name_h1:
+                    runner_info['Name'] = name_h1.get_text(strip=True)
+            
+            # Other details
+            info_div = soup.find('div', class_='flex text-align-left rank-card-detial float-left')
+            if info_div:
+                spans = info_div.find_all('span', class_='fs-1')
+                if len(spans) >= 4:
+                    runner_info['Event'] = spans[0].get_text(strip=True)
+                    runner_info['Group'] = spans[1].get_text(strip=True)
+                    runner_info['Nation'] = spans[2].get_text(strip=True)
+                    runner_info['Gender'] = spans[3].get_text(strip=True)
 
-                # Extract official and net times
-                official_time_p = soup.find('p', class_='rankCard-text text-align-left grade')
-                if official_time_p:
-                    runner_info['Gun Time'] = official_time_p.get_text(strip=True)  # e.g., "02:11:41"
+            official_time_p = soup.find('p', class_='rankCard-text text-align-left grade')
+            if official_time_p:
+                runner_info['Gun Time'] = official_time_p.get_text(strip=True)
 
-                net_time_p = soup.find('p', class_='rankCard-text main-color text-align-left grade')
-                if net_time_p:
-                    runner_info['Net Time'] = net_time_p.get_text(strip=True)  # e.g., "02:11:39"
+            net_time_p = soup.find('p', class_='rankCard-text main-color text-align-left grade')
+            if net_time_p:
+                runner_info['Net Time'] = net_time_p.get_text(strip=True)
 
-                # Extract the JavaScript variable `record` from the page source
-                script_tag = soup.find('script', string=lambda t: t and "var record =" in t)
-                if script_tag:
-                    script_content = script_tag.string
-                    start_index = script_content.find("var record =") + len("var record =")
-                    end_index = script_content.find("};", start_index) + 1
+            # JavaScript variable `record`
+            script_tag = soup.find('script', string=lambda t: t and "var record =" in t)
+            if script_tag:
+                script_content = script_tag.string
+                start_index = script_content.find("var record =") + len("var record =")
+                end_index = script_content.find("};", start_index) + 1
+                raw_json = script_content[start_index:end_index].strip()
+                data = json.loads(raw_json)
 
-                    # Parse the JSON-like structure
-                    raw_json = script_content[start_index:end_index].strip()
-                    data = json.loads(raw_json)
+                # Modify CPAccumulate
+                if "cp" in data:
+                    for cp_id, cp_data in data["cp"].items():
+                        if cp_id.isdigit() and int(cp_id) > 4:
+                            cp_data["CPAccumulate"] -= 5780
 
-                    # Modify CPAccumulate values where CPId > "04"
-                    if "cp" in data:
-                        for cp_id, cp_data in data["cp"].items():
-                            if cp_id.isdigit() and int(cp_id) > 4:
-                                cp_data["CPAccumulate"] -= 5780
+                result = {'runner_info': runner_info, 'record': data}
+                self.save_data(bib_number, result)
+                return result
+            else:
+                print(f"'var record' not found for bib number {bib_number}")
+                return None
 
-                    result = {'runner_info': runner_info, 'record': data}
-                    self.save_data(bib_number, result)
-                    return result
-                else:
-                    print("'var record' not found in the page source.")
-                    # Log the page source for debugging
-                    with open(f'debug_{bib_number}.html', 'w') as f:
-                        f.write(page_source)
-                    return None
-
-            except Exception as e:
-                retries += 1
-                if retries >= max_retries:
-                    print(f"Error: {e} after {max_retries} retries.")
-                    return None
-                else:
-                    print(f"Retrying... ({retries}/{max_retries})")
+        except Exception as e:
+            print(f"Error scraping bib number {bib_number}: {e}")
+            return None
 
     def close_driver(self):
         self.driver.quit()
 
+
+def fetch_bib_data(base_url, bib_number, crawler):
+    url = f"{base_url}{bib_number}"
+    return crawler.scrape_runner_data(url, bib_number)
+
+
 def loop_through_bibs(base_url, output_file):
     crawler = MarathonCrawler()
+    
+    full_marathon_ranges = [
+    #(1001, 1600),
+    #(2001, 2700),
+    (3001,3700),
+    (4001, 4700),
+    (5001, 5800),
+    (6001, 6800),
+    (7001, 7700),
+    (8001, 8800),
+    (9001, 9800),
+    (10001, 10800),
+    (11001, 11800),
+    (12001, 12800),
+    (13001, 13700)
+    ]
+    
     try:
         all_data = []
-        max_404_count = 10
+        bib_numbers = [
+            f"{bib:06d}"
+            for start, end in full_marathon_ranges
+            for bib in range(start, end + 1)
+]
 
-        for cart_number in range(1, 3):  # Cart numbers from 1 to 13
-            error_count = 0
-            max_run_number = 800  # Maximum run number for each cart number
+        max_workers = 5  # Adjust based on your system
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_bib = {executor.submit(fetch_bib_data, base_url, bib, crawler): bib for bib in bib_numbers}
 
-            for run_number in range(1, max_run_number + 1):
-                bib_number = f"{cart_number:03}{run_number:03}"  # Format bib number
-                url = f"{base_url}{bib_number}"
-                print(f"Fetching data for bib number: {bib_number}")
+            for future in as_completed(future_to_bib):
+                bib = future_to_bib[future]
+                try:
+                    data = future.result()
+                    if data:
+                        all_data.append(data)
+                except Exception as e:
+                    print(f"Error fetching bib number {bib}: {e}")
 
-                data = crawler.scrape_runner_data(url, bib_number)
-
-                if data:
-                    all_data.append(data)
-                    error_count = 0  # Reset error count after a successful fetch
-                else:
-                    # Check if the error was a 404 error
-                    response = requests.get(url)
-                    if response.status_code == 404:
-                        error_count += 1
-                        print(f"404 Error encountered for bib number: {bib_number}")
-                    else:
-                        print(f"Error encountered for bib number: {bib_number}")
-
-                if error_count >= max_404_count:
-                    print(f"Encountered {max_404_count} consecutive 404 errors. Moving to next cart number.")
-                    break
-        # Save all collected data to a JSON file
         with open(output_file, 'w') as json_file:
             json.dump(all_data, json_file, indent=4, ensure_ascii=False)
-
         print(f"All data saved to {output_file}")
-  
     finally:
         crawler.close_driver()
 
 
+# Convert JSON data to DataFrame
 def json_to_dataframe(json_file):
     with open(json_file, 'r') as file:
         data = json.load(file)
@@ -193,6 +190,7 @@ def json_to_dataframe(json_file):
 
     df = pd.DataFrame(records)
     return df
+
 
 # Base URL and output file
 base_url = 'https://www.bravelog.tw/athlete/1189/'
