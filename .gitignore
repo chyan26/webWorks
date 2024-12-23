@@ -6,6 +6,8 @@
 *.csv
 *.json
 *.xml
+*.npy
+*.npz
 
 data/
 
