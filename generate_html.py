@@ -113,7 +113,9 @@ def generate_html(posts, current_location, valid_locations):
             .post-media {{
                 display: grid;
                 grid-gap: 2px;
+                max-width: 95%;
                 overflow: hidden;
+                margin: 0 auto;
             }}
             .post-media .media-item {{
                 position: relative;
@@ -212,8 +214,8 @@ def generate_html(posts, current_location, valid_locations):
             /* Five or more images */
             .media-count-more-4 {{
                 grid-template-columns: repeat(6, 1fr);
-                grid-template-rows: repeat(2, 1fr);
-                aspect-ratio: 3/2;
+                grid-template-rows: 2fr 1fr;
+                aspect-ratio: 3/4;
             }}
             .media-count-more-4 .media-item-1 {{
                 grid-column: span 3;
