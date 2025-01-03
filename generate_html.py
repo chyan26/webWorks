@@ -187,7 +187,7 @@ def generate_html(posts, current_location, valid_locations):
             /* Single image */
             .media-count-1 {{
                 grid-template-columns: 1fr;
-                aspect-ratio: 16/9;
+                aspect-ratio: 2/3;
             }}
             /* Two images */
             .media-count-2 {{
@@ -252,10 +252,10 @@ def generate_html(posts, current_location, valid_locations):
             }}
             .video-overlay {{
                 position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
+                top: 50%;
+                left: 50%;
+                width: 64px;
+                height: 64px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -264,11 +264,13 @@ def generate_html(posts, current_location, valid_locations):
                 transition: opacity 0.3s;
                 pointer-events: none;
                 z-index: 10;
+                display: none;
             }}
             .play-icon {{
                 width: 64px;
                 height: 64px;
                 opacity: 0.9;
+                display: none;
             }}
             .nav-bar {{
                 position: sticky;

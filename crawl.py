@@ -71,15 +71,16 @@ def scrape_page(base_url, number, download_directory):
             page_soup = BeautifulSoup(response.text, "html.parser")
 
             content_spans = page_soup.find_all('span', class_='cnt more')
-            
+
             for content_span_index, content_span in enumerate(content_spans, 1):
                 links = content_span.find_all('a', href=True)
                 
                 matching_links = [
                     link for link in links 
-                    if target_keyword in link.get('href', '') or target_keyword in link.get_text(strip=True)
+                    if target_keyword in link.get('href', '') or target_keyword in link.get_text(strip=True) or
+                    target_keyword.rstrip('區') in link.get('href', '')
                 ]
-                
+
                 if matching_links:
                     sub_dir = create_directory(download_directory, f"{number}")
 
@@ -160,6 +161,6 @@ if __name__ == "__main__":
         "永和定點","中和定點","新店定點","樹林定點",
     ]
     start_number = 1
-    end_number = 103
+    end_number = 105
     for download_directory in dir_list:
         main(base_url, download_directory, start_number, end_number)
